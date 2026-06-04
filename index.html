@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade メモ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222536;
+    --border: #2e3148;
+    --accent: #5b6af0;
+    --accent-hover: #7380f5;
+    --text: #e8eaf6;
+    --text-sub: #8b90b8;
+    --danger: #e05c6a;
+    --tag-colors: #3b82f6, #10b981, #f59e0b, #8b5cf6, #ef4444;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  #sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  #sidebar-header {
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #sidebar-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 12px;
+    letter-spacing: 0.02em;
+  }
+
+  #search {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--text-sub); }
+
+  #tag-filter {
+    padding: 10px 16px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tag-btn {
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tag-btn:hover { border-color: var(--accent); color: var(--text); }
+  .tag-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  #note-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  #note-list::-webkit-scrollbar { width: 4px; }
+  #note-list::-webkit-scrollbar-track { background: transparent; }
+  #note-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .note-item {
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+    transition: all 0.15s;
+  }
+
+  .note-item:hover { background: var(--surface2); border-color: var(--border); }
+  .note-item.active { background: var(--surface2); border-color: var(--accent); }
+
+  .note-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .note-item-preview {
+    font-size: 11px;
+    color: var(--text-sub);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+  }
+
+  .note-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .note-tag {
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .note-date {
+    font-size: 10px;
+    color: var(--text-sub);
+    margin-left: auto;
+  }
+
+  #add-btn {
+    margin: 8px;
+    padding: 10px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  #add-btn:hover { background: var(--accent-hover); }
+
+  /* Main */
+  #main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #toolbar {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  #note-title-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 700;
+    outline: none;
+    min-width: 0;
+  }
+
+  #note-title-input::placeholder { color: var(--text-sub); }
+
+  #tag-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 12px;
+    padding: 5px 10px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-sub);
+    font-size: 14px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .icon-btn:hover { border-color: var(--accent); color: var(--text); }
+  .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  #editor-area {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #note-content {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.8;
+    padding: 20px;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+  }
+
+  #note-content::placeholder { color: var(--text-sub); }
+
+  /* Empty state */
+  #empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-sub);
+    gap: 12px;
+  }
+
+  #empty-state .icon { font-size: 48px; opacity: 0.3; }
+  #empty-state p { font-size: 14px; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    #sidebar { width: 220px; min-width: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <h1>📝 Trade メモ</h1>
+    <input id="search" type="text" placeholder="メモを検索...">
+  </div>
+  <div id="tag-filter">
+    <button class="tag-btn active" data-tag="all">すべて</button>
+    <button class="tag-btn" data-tag="戦略">戦略</button>
+    <button class="tag-btn" data-tag="分析">分析</button>
+    <button class="tag-btn" data-tag="ルール">ルール</button>
+    <button class="tag-btn" data-tag="その他">その他</button>
+  </div>
+  <div id="note-list"></div>
+  <button id="add-btn">＋ 新しいメモ</button>
+</nav>
+
+<main id="main">
+  <div id="empty-state">
+    <div class="icon">📋</div>
+    <p>「新しいメモ」をクリックして始めましょう</p>
+  </div>
+
+  <div id="editor" style="display:none; flex-direction:column; height:100%;">
+    <div id="toolbar">
+      <input id="note-title-input" type="text" placeholder="タイトル">
+      <select id="tag-select">
+        <option value="戦略">戦略</option>
+        <option value="分析">分析</option>
+        <option value="ルール">ルール</option>
+        <option value="その他">その他</option>
+      </select>
+      <button class="icon-btn" id="save-btn">💾 保存</button>
+      <button class="icon-btn" id="copy-btn">📋 コピー</button>
+      <button class="icon-btn danger" id="delete-btn">🗑 削除</button>
+    </div>
+    <div id="editor-area">
+      <textarea id="note-content" placeholder="ここにチャットの内容やメモを貼り付けてください...&#10;&#10;Ctrl+S で保存できます"></textarea>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+  const STORAGE_KEY = 'trade_notes_v1';
+
+  const TAG_COLORS = {
+    '戦略': { bg: '#1e3a8a22', color: '#60a5fa', border: '#1e3a8a' },
+    '分析': { bg: '#065f4622', color: '#34d399', border: '#065f46' },
+    'ルール': { bg: '#78350f22', color: '#fbbf24', border: '#78350f' },
+    'その他': { bg: '#4c1d9522', color: '#a78bfa', border: '#4c1d95' },
+  };
+
+  let notes = [];
+  let currentId = null;
+  let filterTag = 'all';
+  let searchQuery = '';
+  let saveTimer = null;
+
+  // --- Storage ---
+  function load() {
+    try { notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { notes = []; }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  }
+
+  // --- Helpers ---
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+  function fmt(ts) {
+    const d = new Date(ts);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) {
+      return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    }
+    return d.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  function tagBadge(tag) {
+    const c = TAG_COLORS[tag] || TAG_COLORS['その他'];
+    return `<span class="note-tag" style="background:${c.bg};color:${c.color};border:1px solid ${c.border}">${tag}</span>`;
+  }
+
+  // --- Render ---
+  function renderList() {
+    const list = document.getElementById('note-list');
+    const q = searchQuery.toLowerCase();
+
+    const filtered = notes.filter(n => {
+      const matchTag = filterTag === 'all' || n.tag === filterTag;
+      const matchSearch = !q || n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q);
+      return matchTag && matchSearch;
+    }).sort((a, b) => b.updatedAt - a.updatedAt);
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-sub);font-size:12px;text-align:center;padding:20px">メモがありません</p>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(n => `
+      <div class="note-item${n.id === currentId ? ' active' : ''}" data-id="${n.id}">
+        <div class="note-item-title">${n.title || '（無題）'}</div>
+        <div class="note-item-preview">${n.content.split('\n')[0] || '内容なし'}</div>
+        <div class="note-item-meta">
+          ${tagBadge(n.tag)}
+          <span class="note-date">${fmt(n.updatedAt)}</span>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.note-item').forEach(el => {
+      el.addEventListener('click', () => openNote(el.dataset.id));
+    });
+  }
+
+  function showEditor(visible) {
+    document.getElementById('empty-state').style.display = visible ? 'none' : 'flex';
+    const ed = document.getElementById('editor');
+    ed.style.display = visible ? 'flex' : 'none';
+  }
+
+  function openNote(id) {
+    const n = notes.find(x => x.id === id);
+    if (!n) return;
+    currentId = id;
+    document.getElementById('note-title-input').value = n.title;
+    document.getElementById('note-content').value = n.content;
+    document.getElementById('tag-select').value = n.tag;
+    showEditor(true);
+    renderList();
+  }
+
+  function createNote() {
+    const n = { id: uid(), title: '', content: '', tag: '戦略', createdAt: Date.now(), updatedAt: Date.now() };
+    notes.unshift(n);
+    save();
+    openNote(n.id);
+    document.getElementById('note-title-input').focus();
+  }
+
+  function saveCurrentNote() {
+    if (!currentId) return;
+    const n = notes.find(x => x.id === currentId);
+    if (!n) return;
+    n.title = document.getElementById('note-title-input').value.trim();
+    n.content = document.getElementById('note-content').value;
+    n.tag = document.getElementById('tag-select').value;
+    n.updatedAt = Date.now();
+    save();
+    renderList();
+    toast('保存しました ✓');
+  }
+
+  function deleteCurrentNote() {
+    if (!currentId) return;
+    if (!confirm('このメモを削除しますか？')) return;
+    notes = notes.filter(x => x.id !== currentId);
+    save();
+    currentId = null;
+    showEditor(false);
+    renderList();
+    toast('削除しました');
+  }
+
+  function scheduleAutoSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (!currentId) return;
+      const n = notes.find(x => x.id === currentId);
+      if (!n) return;
+      n.title = document.getElementById('note-title-input').value.trim();
+      n.content = document.getElementById('note-content').value;
+      n.tag = document.getElementById('tag-select').value;
+      n.updatedAt = Date.now();
+      save();
+      renderList();
+    }, 1500);
+  }
+
+  // --- Event bindings ---
+  document.getElementById('add-btn').addEventListener('click', createNote);
+
+  document.getElementById('save-btn').addEventListener('click', saveCurrentNote);
+
+  document.getElementById('delete-btn').addEventListener('click', deleteCurrentNote);
+
+  document.getElementById('copy-btn').addEventListener('click', () => {
+    const content = document.getElementById('note-content').value;
+    if (!content) { toast('コピーする内容がありません'); return; }
+    navigator.clipboard.writeText(content).then(() => toast('コピーしました 📋'));
+  });
+
+  document.getElementById('note-title-input').addEventListener('input', scheduleAutoSave);
+  document.getElementById('note-content').addEventListener('input', scheduleAutoSave);
+  document.getElementById('tag-select').addEventListener('change', scheduleAutoSave);
+
+  document.getElementById('search').addEventListener('input', e => {
+    searchQuery = e.target.value;
+    renderList();
+  });
+
+  document.querySelectorAll('.tag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterTag = btn.dataset.tag;
+      document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderList();
+    });
+  });
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      saveCurrentNote();
+    }
+  });
+
+  // --- Init ---
+  load();
+  renderList();
+</script>
+</body>
+</html>
